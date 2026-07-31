@@ -149,6 +149,15 @@
   .netProfit .netAmount{color:#7CFC00}
   .netLoss .netAmount{color:#ff5470}
   .netComment{font-size:13px;margin-top:6px;opacity:.9}
+
+  .modalRetryBtn{
+    display:block;width:100%;margin-top:16px;
+    background:linear-gradient(90deg,#ffd700,#ff9f00);
+    border:none;color:#241300;font-weight:800;font-size:16px;
+    padding:12px;border-radius:30px;cursor:pointer;
+    box-shadow:0 6px 18px rgba(255,159,0,.45);transition:transform .15s
+  }
+  .modalRetryBtn:active{transform:scale(.96)}
 </style>
 </head>
 <body>
@@ -271,9 +280,16 @@ function resetAll(){
   closeModal();
 }
 
-function openModal(html){
-  document.getElementById('modalBody').innerHTML = html;
+function openModal(html, showRetry){
+  const retryHtml = showRetry
+    ? `<button class="modalRetryBtn" onclick="retryFromModal()">🔄 ลองใหม่</button>`
+    : '';
+  document.getElementById('modalBody').innerHTML = html + retryHtml;
   document.getElementById('overlay').style.display = 'flex';
+}
+function retryFromModal(){
+  closeModal();
+  simulate();
 }
 function closeModal(){
   document.getElementById('overlay').style.display = 'none';
@@ -388,7 +404,7 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
     `;
   }
 
-  openModal(html);
+  openModal(html, true);
   if(won) launchConfetti();
   goBtn.disabled = false;
 }
