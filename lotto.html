@@ -138,6 +138,17 @@
   .modalStats .row{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(255,255,255,.15);padding:3px 0}
   .modalStats .row:last-child{border-bottom:none}
   .modalStats .val{font-weight:700;color:#ffd76b}
+
+  .netBox{
+    margin-top:12px;border-radius:14px;padding:14px 16px;text-align:center
+  }
+  .netProfit{background:rgba(124,252,0,.12);border:1px solid rgba(124,252,0,.5)}
+  .netLoss{background:rgba(255,84,112,.12);border:1px solid rgba(255,84,112,.5)}
+  .netTitle{font-size:13px;opacity:.85;margin-bottom:2px}
+  .netAmount{font-size:26px;font-weight:800}
+  .netProfit .netAmount{color:#7CFC00}
+  .netLoss .netAmount{color:#ff5470}
+  .netComment{font-size:13px;margin-top:6px;opacity:.9}
 </style>
 </head>
 <body>
@@ -323,6 +334,31 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
   const years = months / 12;
   const ageAtWin = age + years;
   const totalCost = draws * 80 * ticketCount;
+  const prizeWon = won ? prize.amount : 0;
+  const net = prizeWon - totalCost;
+  const netIsProfit = net >= 0;
+
+  function funComment(){
+    const a = Math.abs(net);
+    if(netIsProfit){
+      if(a > 1000000) return '🚀 รวยเละ! เกษียณได้เลย!';
+      if(a > 0) return '🎊 กำไร! เลี้ยงหมูกระป๋องฉลองหน่อย';
+      return '😌 เท่าทุนพอดี ไม่เสียไม่ได้';
+    } else {
+      if(a > 100000000) return '💀 ขาดทุนจนจักรวาลสะเทือน';
+      if(a > 10000000) return '😭 ขาดทุนยับเยิน ขายบ้านหนีดีกว่า';
+      if(a > 1000000) return '🥵 เจ็บปางตาย แต่ยังหายใจอยู่';
+      if(a > 100000) return '🥲 เจ็บอยู่ แต่พอไหว';
+      return '🙂 เสียไปนิดหน่อย ถือว่าซื้อความลุ้น';
+    }
+  }
+
+  const netHtml = `
+    <div class="netBox ${netIsProfit ? 'netProfit' : 'netLoss'}">
+      <div class="netTitle">${netIsProfit ? '📈 กำไรสุทธิ' : '📉 ขาดทุนสุทธิ'}</div>
+      <div class="netAmount">${Math.abs(net).toLocaleString()} บาท</div>
+      <div class="netComment">${funComment()}</div>
+    </div>`;
 
   const stats = `
     <div class="modalStats">
@@ -330,7 +366,9 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
       <div class="row"><span>🎲 จำนวนครั้งที่สุ่ม</span><span class="val">${draws.toLocaleString()} ครั้ง</span></div>
       <div class="row"><span>🗓️ ระยะเวลา</span><span class="val">${months.toLocaleString(undefined,{maximumFractionDigits:1})} เดือน (${years.toLocaleString(undefined,{maximumFractionDigits:2})} ปี)</span></div>
       <div class="row"><span>💸 ค่าลอตเตอรี่รวม</span><span class="val">${totalCost.toLocaleString()} บาท</span></div>
-    </div>`;
+      <div class="row"><span>🎁 เงินรางวัลที่ได้</span><span class="val">${prizeWon.toLocaleString()} บาท</span></div>
+    </div>
+    ${netHtml}`;
 
   let html;
   if(won){
