@@ -218,12 +218,19 @@ function prizeChance(p){ return p.count / Math.pow(10, p.digits); }
 
 function populatePrizes(){
   const sel = document.getElementById('prizeType');
-  sel.innerHTML = PRIZES.map(p=>`<option value="${p.id}">${p.label} (${p.amount.toLocaleString()} บาท)</option>`).join('');
+  const anyOption = `<option value="any">🎇 รางวัลไหนก็ได้ (สุ่มทุกรางวัลพร้อมกัน)</option>`;
+  sel.innerHTML = anyOption + PRIZES.map(p=>`<option value="${p.id}">${p.label} (${p.amount.toLocaleString()} บาท)</option>`).join('');
   sel.addEventListener('change', updatePrizeInfo);
   updatePrizeInfo();
 }
 function updatePrizeInfo(){
-  const p = PRIZES.find(x=>x.id === document.getElementById('prizeType').value);
+  const id = document.getElementById('prizeType').value;
+  if(id === 'any'){
+    document.getElementById('prizeInfo').innerHTML =
+      `🎇 เช็คทุกรางวัล (รางวัลที่ 1-5, ข้างเคียง, เลขหน้า/ท้าย) พร้อมกันในทุกงวด · ถูกอันไหนได้อันนั้น`;
+    return;
+  }
+  const p = PRIZES.find(x=>x.id === id);
   const chance = prizeChance(p);
   document.getElementById('prizeInfo').innerHTML =
     `💰 มูลค่ารางวัล <span class="val">${p.amount.toLocaleString()} บาท</span> ·
@@ -310,7 +317,8 @@ function simulate(){
     return;
   }
 
-  const prize = PRIZES.find(p=>p.id === document.getElementById('prizeType').value);
+  const prizeId = document.getElementById('prizeType').value;
+  const prize = prizeId === 'any' ? {id:'any', label:'รางวัลไหนก็ได้', digits:6} : PRIZES.find(p=>p.id === prizeId);
   const goBtn = document.getElementById('goBtn');
   const drawBox = document.getElementById('drawBox');
   goBtn.disabled = true;
@@ -350,19 +358,32 @@ function ticketSegment(ticket, prize){
 function runSimulation(age, numbers, prize, drawBox, goBtn){
   const MAX_DRAWS = 50000000;
   const ticketCount = numbers.length;
-  let draws = 0, draw = '', won = false, combos = [];
+  const prizePool = prize.id === 'any' ? PRIZES : [prize];
+  let draws = 0, draw = '', won = false, wonTiers = [];
 
   while(draws < MAX_DRAWS){
     draws++;
-    combos = drawCombos(prize);
-    let matched = null;
-    for(let i=0;i<ticketCount;i++){
-      const seg = ticketSegment(numbers[i], prize);
-      if(combos.includes(seg)){ matched = seg; won = true; break; }
+    const roundWins = [];
+    let firstCombo = null;
+    for(const p of prizePool){
+      const combos = drawCombos(p);
+      if(firstCombo === null) firstCombo = combos[0];
+      for(let i=0;i<ticketCount;i++){
+        const seg = ticketSegment(numbers[i], p);
+        if(combos.includes(seg)){
+          roundWins.push({label:p.label, amount:p.amount, combo:seg});
+          break;
+        }
+      }
     }
-    if(won){ draw = matched; break; }
+    if(roundWins.length > 0){
+      won = true;
+      wonTiers = roundWins.sort((a,b)=>b.amount - a.amount);
+      draw = wonTiers[0].combo;
+      break;
+    }
+    if(draws === MAX_DRAWS) draw = firstCombo;
   }
-  if(!won) draw = combos[0];
 
   drawBox.innerText = draw;
 
@@ -370,7 +391,8 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
   const years = months / 12;
   const ageAtWin = age + years;
   const totalCost = draws * 80 * ticketCount;
-  const prizeWon = won ? prize.amount : 0;
+  const prizeWon = won ? wonTiers.reduce((sum,t)=>sum + t.amount, 0) : 0;
+  const wonLabel = won ? wonTiers.map(t=>t.label).join(' + ') : prize.label;
   const net = prizeWon - totalCost;
   const netIsProfit = net >= 0;
 
@@ -398,7 +420,7 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
 
   const stats = `
     <div class="modalStats">
-      <div class="row"><span>🏆 รางวัล</span><span class="val">${prize.label}</span></div>
+      <div class="row"><span>🏆 รางวัล</span><span class="val">${wonLabel}</span></div>
       <div class="row"><span>🎲 จำนวนครั้งที่สุ่ม</span><span class="val">${draws.toLocaleString()} ครั้ง</span></div>
       <div class="row"><span>🗓️ ระยะเวลา</span><span class="val">${months.toLocaleString(undefined,{maximumFractionDigits:1})} เดือน (${years.toLocaleString(undefined,{maximumFractionDigits:2})} ปี)</span></div>
       <div class="row"><span>💸 ค่าลอตเตอรี่รวม</span><span class="val">${totalCost.toLocaleString()} บาท</span></div>
@@ -409,9 +431,9 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
   let html;
   if(won){
     html = `
-      <div class="modalTitle">🎉 ถูก${prize.label}! 🎉</div>
+      <div class="modalTitle">🎉 ถูก${wonLabel}! 🎉</div>
       <div class="modalNumber">${draw}</div>
-      <div class="ageLabel">ได้รับเงินรางวัล ${prize.amount.toLocaleString()} บาท ตอนอายุ</div>
+      <div class="ageLabel">ได้รับเงินรางวัล ${prizeWon.toLocaleString()} บาท ตอนอายุ</div>
       <div class="ageHighlight">${ageAtWin.toFixed(1)}</div>
       <div class="ageUnit">ปี</div>
       ${stats}
