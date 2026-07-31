@@ -341,10 +341,6 @@ function drawCombos(prize){
   return combos;
 }
 
-function buildDisplayNumber(prize, combos){
-  return combos[0]; // แสดงเฉพาะจำนวนหลักตามรางวัลจริง (6 / 3 / 2 หลัก)
-}
-
 function ticketSegment(ticket, prize){
   if(prize.mode === 'full') return ticket;
   if(prize.mode === 'front') return ticket.slice(0, prize.digits);
@@ -354,17 +350,19 @@ function ticketSegment(ticket, prize){
 function runSimulation(age, numbers, prize, drawBox, goBtn){
   const MAX_DRAWS = 50000000;
   const ticketCount = numbers.length;
-  let draws = 0, draw = '', won = false;
+  let draws = 0, draw = '', won = false, combos = [];
 
   while(draws < MAX_DRAWS){
     draws++;
-    const combos = drawCombos(prize);
-    draw = buildDisplayNumber(prize, combos);
+    combos = drawCombos(prize);
+    let matched = null;
     for(let i=0;i<ticketCount;i++){
-      if(combos.includes(ticketSegment(numbers[i], prize))){ won = true; break; }
+      const seg = ticketSegment(numbers[i], prize);
+      if(combos.includes(seg)){ matched = seg; won = true; break; }
     }
-    if(won) break;
+    if(won){ draw = matched; break; }
   }
+  if(!won) draw = combos[0];
 
   drawBox.innerText = draw;
 
