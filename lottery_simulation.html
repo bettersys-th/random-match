@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>จำลองการถูกลอตเตอรี่</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap');
+  *{box-sizing:border-box;font-family:'Kanit',sans-serif}
+  body{
+    margin:0;min-height:100vh;padding:30px 15px;
+    background:radial-gradient(circle at top, #3a1c71, #1b0e33 70%);
+    color:#fff;text-align:center;overflow-x:hidden
+  }
+  h1{
+    font-size:28px;font-weight:800;margin:0 0 4px;
+    background:linear-gradient(90deg,#ffd76b,#ffea00,#ffd76b);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 20px rgba(255,215,0,.3)
+  }
+  .sub{opacity:.7;font-size:13px;margin-bottom:24px}
+  .card{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,215,0,.25);
+    border-radius:20px;padding:24px;max-width:460px;margin:0 auto 18px;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px)
+  }
+  label{font-size:14px;opacity:.85;display:block;margin-bottom:8px}
+  input[type=number], input.userNum{
+    padding:10px;font-size:18px;border-radius:10px;border:none;
+    width:150px;text-align:center;outline:none;font-weight:600;
+    background:#fff;color:#222
+  }
+  input.userNum{width:130px;letter-spacing:3px}
+  .numRow{display:flex;justify-content:center;align-items:center;gap:8px;margin:8px 0}
+  .delBtn{
+    background:#ff5470;border:none;color:#fff;width:30px;height:30px;
+    border-radius:50%;cursor:pointer;font-weight:700;font-size:14px
+  }
+  .addBtn{
+    background:linear-gradient(90deg,#2ecc71,#27ae60);border:none;color:#fff;
+    padding:9px 18px;border-radius:30px;font-size:14px;font-weight:600;
+    cursor:pointer;margin-top:6px
+  }
+  .addBtn:disabled{opacity:.4;cursor:not-allowed}
+  #drawBox{
+    font-size:38px;font-weight:800;letter-spacing:8px;
+    background:linear-gradient(180deg,#fff,#f2e6c9);color:#1b0e33;
+    display:inline-block;padding:16px 26px;border-radius:14px;margin:20px 0 8px;
+    box-shadow:0 0 0 4px #ffd700, 0 0 25px rgba(255,215,0,.6);
+    min-width:260px
+  }
+  #drawBox.rolling{animation:shake .08s infinite}
+  @keyframes shake{
+    0%{transform:translateX(-2px) rotate(-0.5deg)}
+    50%{transform:translateX(2px) rotate(0.5deg)}
+    100%{transform:translateX(-2px) rotate(-0.5deg)}
+  }
+  .drawLabel{font-size:12px;opacity:.6;letter-spacing:2px}
+  .mainBtn{
+    background:linear-gradient(90deg,#ffd700,#ff9f00);
+    border:none;color:#241300;font-weight:800;font-size:18px;
+    padding:14px 40px;border-radius:40px;cursor:pointer;margin-top:14px;
+    box-shadow:0 6px 18px rgba(255,159,0,.45);transition:transform .15s
+  }
+  .mainBtn:active{transform:scale(.95)}
+  .mainBtn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  #result{
+    margin-top:22px;font-size:15px;line-height:2;text-align:left;
+    background:rgba(0,0,0,.25);border-radius:14px;padding:16px 20px;display:none
+  }
+  #result .row{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(255,255,255,.15);padding:4px 0}
+  #result .row:last-child{border-bottom:none}
+  #result .val{font-weight:700;color:#ffd76b}
+  .winMsg{
+    text-align:center;font-size:19px;font-weight:800;color:#7CFC00;
+    margin-top:10px;text-shadow:0 0 12px rgba(124,252,0,.6)
+  }
+  .loseMsg{text-align:center;font-size:16px;color:#ff8080;margin-top:10px}
+  #confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .piece{position:absolute;top:-10px;width:8px;height:14px;opacity:.9;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="confetti"></div>
+
+<h1>🎰 จำลองโอกาสถูกลอตเตอรี่ 🎰</h1>
+<div class="sub">ออกรางวัลเดือนละ 2 ครั้ง · เลข 6 หลัก · ใบละ 80 บาท</div>
+
+<div class="card">
+  <label>🎂 อายุปัจจุบัน</label>
+  <input type="number" id="age" value="30" min="1" max="120">
+</div>
+
+<div class="card">
+  <label>🎫 เลขที่คุณเลือก (สูงสุด 5 ใบ)</label>
+  <div id="numbers"></div>
+  <button class="addBtn" id="addBtnEl" onclick="addNumber()">+ เพิ่มเลข</button>
+</div>
+
+<div>
+  <div class="drawLabel">เลขที่ออก</div>
+  <div id="drawBox">------</div>
+</div>
+
+<div>
+  <button class="mainBtn" id="goBtn" onclick="simulate()">🎲 เริ่มจำลอง</button>
+</div>
+
+<div id="result"></div>
+
+<script>
+function addNumber(){
+  const wrap = document.getElementById('numbers');
+  if(wrap.children.length >= 5) return;
+  const div = document.createElement('div');
+  div.className = 'numRow';
+  div.innerHTML = `🎟️ <input type="text" maxlength="6" placeholder="XXXXXX" class="userNum">
+    <button class="delBtn" onclick="this.parentElement.remove()">✕</button>`;
+  wrap.appendChild(div);
+  document.getElementById('addBtnEl').disabled = wrap.children.length >= 5;
+}
+addNumber();
+
+function pad(n){ return n.toString().padStart(6,'0'); }
+
+function launchConfetti(){
+  const colors = ['#ffd700','#ff5470','#2ecc71','#00d4ff','#ff9f00','#fff'];
+  const holder = document.getElementById('confetti');
+  for(let i=0;i<120;i++){
+    const p = document.createElement('div');
+    p.className='piece';
+    p.style.left = Math.random()*100+'vw';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.transform = `rotate(${Math.random()*360}deg)`;
+    const duration = 2.5 + Math.random()*2;
+    p.animate([
+      {transform:`translateY(0) rotate(0deg)`, opacity:1},
+      {transform:`translateY(100vh) rotate(${360+Math.random()*360}deg)`, opacity:0}
+    ], {duration: duration*1000, easing:'ease-in'});
+    holder.appendChild(p);
+    setTimeout(()=>p.remove(), duration*1000);
+  }
+}
+
+function simulate(){
+  const age = parseInt(document.getElementById('age').value) || 0;
+  const inputs = document.querySelectorAll('.userNum');
+  const numbers = [];
+  inputs.forEach(inp=>{
+    const v = inp.value.trim();
+    if(/^\d{6}$/.test(v)) numbers.push(v);
+  });
+
+  const resultEl = document.getElementById('result');
+  if(numbers.length === 0){
+    resultEl.style.display='block';
+    resultEl.innerHTML = '<span style="color:orange">⚠️ กรุณากรอกเลข 6 หลักอย่างน้อย 1 ใบ</span>';
+    return;
+  }
+
+  const goBtn = document.getElementById('goBtn');
+  const drawBox = document.getElementById('drawBox');
+  goBtn.disabled = true;
+  resultEl.style.display='none';
+  drawBox.classList.add('rolling');
+
+  // แอนิเมชันหมุนเลขสั้นๆ ให้ตื่นเต้น ก่อนคำนวณจริง
+  let ticks = 0;
+  const rollTimer = setInterval(()=>{
+    drawBox.innerText = pad(Math.floor(Math.random()*1000000));
+    ticks++;
+    if(ticks > 18){
+      clearInterval(rollTimer);
+      drawBox.classList.remove('rolling');
+      runSimulation(age, numbers, drawBox, resultEl, goBtn);
+    }
+  }, 60);
+}
+
+function runSimulation(age, numbers, drawBox, resultEl, goBtn){
+  const MAX_DRAWS = 50000000;
+  let draws = 0, draw = '', won = false;
+
+  while(draws < MAX_DRAWS){
+    draws++;
+    draw = pad(Math.floor(Math.random()*1000000));
+    if(numbers.includes(draw)){ won = true; break; }
+  }
+
+  drawBox.innerText = draw;
+
+  const months = draws / 2;
+  const years = months / 12;
+  const ageAtWin = age + years;
+  const totalCost = draws * 80;
+
+  let html = `
+    <div class="row"><span>🎲 จำนวนครั้งที่สุ่ม</span><span class="val">${draws.toLocaleString()} ครั้ง</span></div>
+    <div class="row"><span>🗓️ ระยะเวลา</span><span class="val">${months.toLocaleString(undefined,{maximumFractionDigits:1})} เดือน (${years.toLocaleString(undefined,{maximumFractionDigits:2})} ปี)</span></div>
+    <div class="row"><span>💸 ค่าลอตเตอรี่รวม</span><span class="val">${totalCost.toLocaleString()} บาท</span></div>
+  `;
+
+  if(won){
+    html += `<div class="winMsg">🎉 ถูกรางวัลด้วยเลข ${draw}<br>ตอนอายุประมาณ ${ageAtWin.toFixed(1)} ปี! 🎉</div>`;
+    launchConfetti();
+  } else {
+    html += `<div class="loseMsg">😅 ไม่ถูกรางวัลภายในขีดจำกัดการจำลอง</div>`;
+  }
+
+  resultEl.innerHTML = html;
+  resultEl.style.display='block';
+  goBtn.disabled = false;
+}
+</script>
+</body>
+</html>
