@@ -31,6 +31,12 @@
     background:#fff;color:#222
   }
   input.userNum{width:130px;letter-spacing:3px}
+  select#prizeType{
+    padding:10px;font-size:15px;border-radius:10px;border:none;
+    width:100%;font-weight:600;background:#fff;color:#222;cursor:pointer
+  }
+  .prizeInfo{font-size:12px;opacity:.75;margin-top:8px;line-height:1.6}
+  .prizeInfo .val{color:#ffd76b;font-weight:700}
   .numRow{display:flex;justify-content:center;align-items:center;gap:8px;margin:8px 0}
   .delBtn{
     background:#ff5470;border:none;color:#fff;width:30px;height:30px;
@@ -68,6 +74,10 @@
   }
   .mainBtn:active{transform:scale(.95)}
   .mainBtn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .resetBtn{
+    background:linear-gradient(90deg,#6a5acd,#8a2be2);color:#fff;
+    box-shadow:0 6px 18px rgba(138,43,226,.45)
+  }
   #result{
     margin-top:22px;font-size:15px;line-height:2;text-align:left;
     background:rgba(0,0,0,.25);border-radius:14px;padding:16px 20px;display:none
@@ -142,6 +152,12 @@
   <button class="addBtn" id="addBtnEl" onclick="addNumber()">+ เพิ่มเลข</button>
 </div>
 
+<div class="card">
+  <label>🏆 รางวัลที่อยากถูก</label>
+  <select id="prizeType"></select>
+  <div id="prizeInfo" class="prizeInfo"></div>
+</div>
+
 <div>
   <div class="drawLabel">เลขที่ออก</div>
   <div id="drawBox">------</div>
@@ -149,6 +165,7 @@
 
 <div>
   <button class="mainBtn" id="goBtn" onclick="simulate()">🎲 เริ่มจำลอง</button>
+  <button class="mainBtn resetBtn" onclick="resetAll()">🔄 ลองใหม่</button>
 </div>
 
 <div id="overlay">
@@ -159,6 +176,35 @@
 </div>
 
 <script>
+const PRIZES = [
+  {id:'p1',    label:'รางวัลที่ 1',                 amount:6000000, count:1,   digits:6, mode:'full'},
+  {id:'p2',    label:'รางวัลที่ 2',                 amount:200000,  count:5,   digits:6, mode:'full'},
+  {id:'p3',    label:'รางวัลที่ 3',                 amount:80000,   count:10,  digits:6, mode:'full'},
+  {id:'p4',    label:'รางวัลที่ 4',                 amount:40000,   count:50,  digits:6, mode:'full'},
+  {id:'p5',    label:'รางวัลที่ 5',                 amount:20000,   count:100, digits:6, mode:'full'},
+  {id:'near1', label:'รางวัลข้างเคียงรางวัลที่ 1',   amount:100000,  count:2,   digits:6, mode:'full'},
+  {id:'front3',label:'รางวัลเลขหน้า 3 ตัว',          amount:4000,    count:2,   digits:3, mode:'front'},
+  {id:'back3', label:'รางวัลเลขท้าย 3 ตัว',          amount:4000,    count:2,   digits:3, mode:'back'},
+  {id:'back2', label:'รางวัลเลขท้าย 2 ตัว',          amount:2000,    count:1,   digits:2, mode:'back'}
+];
+
+function prizeChance(p){ return p.count / Math.pow(10, p.digits); }
+
+function populatePrizes(){
+  const sel = document.getElementById('prizeType');
+  sel.innerHTML = PRIZES.map(p=>`<option value="${p.id}">${p.label} (${p.amount.toLocaleString()} บาท)</option>`).join('');
+  sel.addEventListener('change', updatePrizeInfo);
+  updatePrizeInfo();
+}
+function updatePrizeInfo(){
+  const p = PRIZES.find(x=>x.id === document.getElementById('prizeType').value);
+  const chance = prizeChance(p);
+  document.getElementById('prizeInfo').innerHTML =
+    `💰 มูลค่ารางวัล <span class="val">${p.amount.toLocaleString()} บาท</span> ·
+     🎯 โอกาสถูกต่อการออก 1 ครั้ง (ต่อ 1 ใบ) <span class="val">1 ใน ${Math.round(1/chance).toLocaleString()}</span>`;
+}
+populatePrizes();
+
 function addNumber(){
   const wrap = document.getElementById('numbers');
   if(wrap.children.length >= 5) return;
@@ -200,6 +246,14 @@ function launchConfetti(){
   }
 }
 
+function resetAll(){
+  document.getElementById('age').value = 30;
+  document.getElementById('numbers').innerHTML = '';
+  addNumber();
+  document.getElementById('drawBox').innerText = '------';
+  closeModal();
+}
+
 function openModal(html){
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('overlay').style.display = 'flex';
@@ -223,6 +277,7 @@ function simulate(){
     return;
   }
 
+  const prize = PRIZES.find(p=>p.id === document.getElementById('prizeType').value);
   const goBtn = document.getElementById('goBtn');
   const drawBox = document.getElementById('drawBox');
   goBtn.disabled = true;
@@ -236,19 +291,24 @@ function simulate(){
     if(ticks > 18){
       clearInterval(rollTimer);
       drawBox.classList.remove('rolling');
-      runSimulation(age, numbers, drawBox, goBtn);
+      runSimulation(age, numbers, prize, drawBox, goBtn);
     }
   }, 60);
 }
 
-function runSimulation(age, numbers, drawBox, goBtn){
+function runSimulation(age, numbers, prize, drawBox, goBtn){
   const MAX_DRAWS = 50000000;
+  const chance = prizeChance(prize); // ต่อ 1 ใบ ต่อการออก 1 ครั้ง
+  const ticketCount = numbers.length;
   let draws = 0, draw = '', won = false;
 
   while(draws < MAX_DRAWS){
     draws++;
     draw = pad(Math.floor(Math.random()*1000000));
-    if(numbers.includes(draw)){ won = true; break; }
+    for(let i=0;i<ticketCount;i++){
+      if(Math.random() < chance){ won = true; break; }
+    }
+    if(won) break;
   }
 
   drawBox.innerText = draw;
@@ -256,10 +316,11 @@ function runSimulation(age, numbers, drawBox, goBtn){
   const months = draws / 2;
   const years = months / 12;
   const ageAtWin = age + years;
-  const totalCost = draws * 80;
+  const totalCost = draws * 80 * ticketCount;
 
   const stats = `
     <div class="modalStats">
+      <div class="row"><span>🏆 รางวัล</span><span class="val">${prize.label}</span></div>
       <div class="row"><span>🎲 จำนวนครั้งที่สุ่ม</span><span class="val">${draws.toLocaleString()} ครั้ง</span></div>
       <div class="row"><span>🗓️ ระยะเวลา</span><span class="val">${months.toLocaleString(undefined,{maximumFractionDigits:1})} เดือน (${years.toLocaleString(undefined,{maximumFractionDigits:2})} ปี)</span></div>
       <div class="row"><span>💸 ค่าลอตเตอรี่รวม</span><span class="val">${totalCost.toLocaleString()} บาท</span></div>
@@ -268,9 +329,9 @@ function runSimulation(age, numbers, drawBox, goBtn){
   let html;
   if(won){
     html = `
-      <div class="modalTitle">🎉 ถูกรางวัล! 🎉</div>
+      <div class="modalTitle">🎉 ถูก${prize.label}! 🎉</div>
       <div class="modalNumber">${draw}</div>
-      <div class="ageLabel">อายุตอนถูกรางวัล</div>
+      <div class="ageLabel">ได้รับเงินรางวัล ${prize.amount.toLocaleString()} บาท ตอนอายุ</div>
       <div class="ageHighlight">${ageAtWin.toFixed(1)}</div>
       <div class="ageLabel">ปี</div>
       ${stats}
