@@ -36,6 +36,10 @@
     background:#ff5470;border:none;color:#fff;width:30px;height:30px;
     border-radius:50%;cursor:pointer;font-weight:700;font-size:14px
   }
+  .rndBtn{
+    background:linear-gradient(90deg,#00c6ff,#0072ff);border:none;color:#fff;
+    width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px
+  }
   .addBtn{
     background:linear-gradient(90deg,#2ecc71,#27ae60);border:none;color:#fff;
     padding:9px 18px;border-radius:30px;font-size:14px;font-weight:600;
@@ -161,9 +165,17 @@ function addNumber(){
   const div = document.createElement('div');
   div.className = 'numRow';
   div.innerHTML = `🎟️ <input type="text" maxlength="6" placeholder="XXXXXX" class="userNum">
-    <button class="delBtn" onclick="this.parentElement.remove()">✕</button>`;
+    <button class="rndBtn" title="สุ่มเลข" onclick="randomizeInput(this)">🎲</button>
+    <button class="delBtn" onclick="this.parentElement.remove(); updateAddBtn()">✕</button>`;
   wrap.appendChild(div);
-  document.getElementById('addBtnEl').disabled = wrap.children.length >= 5;
+  updateAddBtn();
+}
+function updateAddBtn(){
+  document.getElementById('addBtnEl').disabled = document.getElementById('numbers').children.length >= 5;
+}
+function randomizeInput(btn){
+  const input = btn.parentElement.querySelector('.userNum');
+  input.value = pad(Math.floor(Math.random()*1000000));
 }
 addNumber();
 
