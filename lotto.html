@@ -319,7 +319,7 @@ function simulate(){
   // แอนิเมชันหมุนเลขสั้นๆ ให้ตื่นเต้น ก่อนคำนวณจริง
   let ticks = 0;
   const rollTimer = setInterval(()=>{
-    drawBox.innerText = pad(Math.floor(Math.random()*1000000));
+    drawBox.innerText = randDigits(prize.digits);
     ticks++;
     if(ticks > 18){
       clearInterval(rollTimer);
@@ -329,17 +329,39 @@ function simulate(){
   }, 60);
 }
 
+function randDigits(n){
+  let s = '';
+  for(let i=0;i<n;i++) s += Math.floor(Math.random()*10);
+  return s;
+}
+
+function drawCombos(prize){
+  const combos = [];
+  for(let i=0;i<prize.count;i++) combos.push(randDigits(prize.digits));
+  return combos;
+}
+
+function buildDisplayNumber(prize, combos){
+  return combos[0]; // แสดงเฉพาะจำนวนหลักตามรางวัลจริง (6 / 3 / 2 หลัก)
+}
+
+function ticketSegment(ticket, prize){
+  if(prize.mode === 'full') return ticket;
+  if(prize.mode === 'front') return ticket.slice(0, prize.digits);
+  return ticket.slice(6 - prize.digits);
+}
+
 function runSimulation(age, numbers, prize, drawBox, goBtn){
   const MAX_DRAWS = 50000000;
-  const chance = prizeChance(prize); // ต่อ 1 ใบ ต่อการออก 1 ครั้ง
   const ticketCount = numbers.length;
   let draws = 0, draw = '', won = false;
 
   while(draws < MAX_DRAWS){
     draws++;
-    draw = pad(Math.floor(Math.random()*1000000));
+    const combos = drawCombos(prize);
+    draw = buildDisplayNumber(prize, combos);
     for(let i=0;i<ticketCount;i++){
-      if(Math.random() < chance){ won = true; break; }
+      if(combos.includes(ticketSegment(numbers[i], prize))){ won = true; break; }
     }
     if(won) break;
   }
