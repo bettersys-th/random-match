@@ -24,27 +24,30 @@
     border-radius:20px;padding:24px;max-width:460px;margin:0 auto 18px;
     box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px)
   }
+  .cardWide{max-width:520px}
   label{font-size:14px;opacity:.85;display:block;margin-bottom:8px}
   input[type=number], input.userNum{
     padding:10px;font-size:18px;border-radius:10px;border:none;
     width:150px;text-align:center;outline:none;font-weight:600;
     background:#fff;color:#222
   }
-  input.userNum{width:130px;letter-spacing:3px}
+  input.userNum{width:80px;letter-spacing:1px;padding:8px 4px;font-size:15px}
   select#prizeType{
     padding:10px;font-size:15px;border-radius:10px;border:none;
     width:100%;font-weight:600;background:#fff;color:#222;cursor:pointer
   }
   .prizeInfo{font-size:12px;opacity:.75;margin-top:8px;line-height:1.6}
   .prizeInfo .val{color:#ffd76b;font-weight:700}
-  .numRow{display:flex;justify-content:center;align-items:center;gap:8px;margin:8px 0}
+  #numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;justify-items:center}
+  .numRow{display:flex;flex-direction:column;align-items:center;gap:5px;margin:0}
+  .numRow .btnRow{display:flex;gap:6px}
   .delBtn{
-    background:#ff5470;border:none;color:#fff;width:30px;height:30px;
-    border-radius:50%;cursor:pointer;font-weight:700;font-size:14px
+    background:#ff5470;border:none;color:#fff;width:24px;height:24px;
+    border-radius:50%;cursor:pointer;font-weight:700;font-size:12px
   }
   .rndBtn{
     background:linear-gradient(90deg,#00c6ff,#0072ff);border:none;color:#fff;
-    width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px
+    width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px
   }
   .addBtn{
     background:linear-gradient(90deg,#2ecc71,#27ae60);border:none;color:#fff;
@@ -158,6 +161,10 @@
     box-shadow:0 6px 18px rgba(255,159,0,.45);transition:transform .15s
   }
   .modalRetryBtn:active{transform:scale(.96)}
+
+  @media (max-width: 360px){
+    #numbers{grid-template-columns:repeat(2,1fr)}
+  }
 </style>
 </head>
 <body>
@@ -167,13 +174,8 @@
 <h1>🎰 จำลองโอกาสถูกลอตเตอรี่ 🎰</h1>
 <div class="sub">ออกรางวัลเดือนละ 2 ครั้ง · เลข 6 หลัก · ใบละ 80 บาท</div>
 
-<div class="card">
-  <label>🎂 อายุปัจจุบัน</label>
-  <input type="number" id="age" value="30" min="1" max="120">
-</div>
-
-<div class="card">
-  <label>🎫 เลขที่คุณเลือก (สูงสุด 5 ใบ)</label>
+<div class="card cardWide">
+  <label>🎫 เลขที่คุณเลือก (สูงสุด 12 ใบ)</label>
   <div id="numbers"></div>
   <button class="addBtn" id="addBtnEl" onclick="addNumber()">+ เพิ่มเลข</button>
 </div>
@@ -240,20 +242,22 @@ populatePrizes();
 
 function addNumber(){
   const wrap = document.getElementById('numbers');
-  if(wrap.children.length >= 5) return;
+  if(wrap.children.length >= 12) return;
   const div = document.createElement('div');
   div.className = 'numRow';
-  div.innerHTML = `🎟️ <input type="text" maxlength="6" placeholder="XXXXXX" class="userNum">
-    <button class="rndBtn" title="สุ่มเลข" onclick="randomizeInput(this)">🎲</button>
-    <button class="delBtn" onclick="this.parentElement.remove(); updateAddBtn()">✕</button>`;
+  div.innerHTML = `<input type="text" maxlength="6" placeholder="XXXXXX" class="userNum">
+    <div class="btnRow">
+      <button class="rndBtn" title="สุ่มเลข" onclick="randomizeInput(this)">🎲</button>
+      <button class="delBtn" onclick="this.parentElement.remove(); updateAddBtn()">✕</button>
+    </div>`;
   wrap.appendChild(div);
   updateAddBtn();
 }
 function updateAddBtn(){
-  document.getElementById('addBtnEl').disabled = document.getElementById('numbers').children.length >= 5;
+  document.getElementById('addBtnEl').disabled = document.getElementById('numbers').children.length >= 12;
 }
 function randomizeInput(btn){
-  const input = btn.parentElement.querySelector('.userNum');
+  const input = btn.parentElement.parentElement.querySelector('.userNum');
   input.value = pad(Math.floor(Math.random()*1000000));
 }
 addNumber();
@@ -280,7 +284,6 @@ function launchConfetti(){
 }
 
 function resetAll(){
-  document.getElementById('age').value = 30;
   document.getElementById('numbers').innerHTML = '';
   addNumber();
   document.getElementById('drawBox').innerText = '------';
@@ -303,7 +306,6 @@ function closeModal(){
 }
 
 function simulate(){
-  const age = parseInt(document.getElementById('age').value) || 0;
   const inputs = document.querySelectorAll('.userNum');
   const numbers = [];
   inputs.forEach(inp=>{
@@ -332,7 +334,7 @@ function simulate(){
     if(ticks > 18){
       clearInterval(rollTimer);
       drawBox.classList.remove('rolling');
-      runSimulation(age, numbers, prize, drawBox, goBtn);
+      runSimulation(numbers, prize, drawBox, goBtn);
     }
   }, 60);
 }
@@ -355,7 +357,7 @@ function ticketSegment(ticket, prize){
   return ticket.slice(6 - prize.digits);
 }
 
-function runSimulation(age, numbers, prize, drawBox, goBtn){
+function runSimulation(numbers, prize, drawBox, goBtn){
   const MAX_DRAWS = 50000000;
   const ticketCount = numbers.length;
   const prizePool = prize.id === 'any' ? PRIZES : [prize];
@@ -389,7 +391,6 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
 
   const months = draws / 2;
   const years = months / 12;
-  const ageAtWin = age + years;
   const totalCost = draws * 80 * ticketCount;
   const prizeWon = won ? wonTiers.reduce((sum,t)=>sum + t.amount, 0) : 0;
   const wonLabel = won ? wonTiers.map(t=>t.label).join(' + ') : prize.label;
@@ -433,8 +434,8 @@ function runSimulation(age, numbers, prize, drawBox, goBtn){
     html = `
       <div class="modalTitle">🎉 ถูก${wonLabel}! 🎉</div>
       <div class="modalNumber">${draw}</div>
-      <div class="ageLabel">ได้รับเงินรางวัล ${prizeWon.toLocaleString()} บาท ตอนอายุ</div>
-      <div class="ageHighlight">${ageAtWin.toFixed(1)}</div>
+      <div class="ageLabel">ได้รับเงินรางวัล ${prizeWon.toLocaleString()} บาท ใช้เวลา</div>
+      <div class="ageHighlight">${years.toFixed(1)}</div>
       <div class="ageUnit">ปี</div>
       ${stats}
     `;
