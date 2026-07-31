@@ -370,12 +370,16 @@ function runSimulation(numbers, prize, drawBox, goBtn){
     for(const p of prizePool){
       const combos = drawCombos(p);
       if(firstCombo === null) firstCombo = combos[0];
+      let matchCount = 0, matchedSeg = null;
       for(let i=0;i<ticketCount;i++){
         const seg = ticketSegment(numbers[i], p);
         if(combos.includes(seg)){
-          roundWins.push({label:p.label, amount:p.amount, combo:seg});
-          break;
+          matchCount++;
+          if(matchedSeg === null) matchedSeg = seg;
         }
+      }
+      if(matchCount > 0){
+        roundWins.push({label:p.label, amount:p.amount * matchCount, combo:matchedSeg, count:matchCount});
       }
     }
     if(roundWins.length > 0){
@@ -393,7 +397,7 @@ function runSimulation(numbers, prize, drawBox, goBtn){
   const years = months / 12;
   const totalCost = draws * 80 * ticketCount;
   const prizeWon = won ? wonTiers.reduce((sum,t)=>sum + t.amount, 0) : 0;
-  const wonLabel = won ? wonTiers.map(t=>t.label).join(' + ') : prize.label;
+  const wonLabel = won ? wonTiers.map(t=> t.count > 1 ? `${t.label} x${t.count}` : t.label).join(' + ') : prize.label;
   const net = prizeWon - totalCost;
   const netIsProfit = net >= 0;
 
