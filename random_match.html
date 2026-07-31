@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>สุ่มเลขจับคู่ต้นแบบ</title>
+<style>
+  body{font-family:sans-serif;background:#222;color:#eee;text-align:center;padding:20px}
+  .wrap{display:flex;justify-content:center;gap:40px;margin-top:20px}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .box{width:90px;height:45px;line-height:45px;font-size:22px;border-radius:6px;background:#fff;color:#000}
+  .match{background:#7CFC00}
+  h3{margin-bottom:4px}
+  #count{font-size:24px;margin:15px 0}
+  button{padding:8px 16px;font-size:16px;margin:5px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h2>จับคู่ตัวเลขต้นแบบ (1-150)</h2>
+<div id="count">จำนวนครั้งที่สุ่ม: 0</div>
+<button onclick="start()">เริ่ม</button>
+<button onclick="stop()">หยุด</button>
+<button onclick="reset()">รีเซ็ต</button>
+
+<div class="wrap">
+  <div class="col" id="left"></div>
+  <div class="col" id="right"></div>
+</div>
+
+<script>
+const fixed = [119,3,5,29,39,78,83,97,102,141];
+let current = new Array(fixed.length).fill(null);
+let count = 0, timer = null;
+
+function render(){
+  document.getElementById('left').innerHTML =
+    '<h3>ต้นแบบ</h3>' + fixed.map(n=>`<div class="box">${n}</div>`).join('');
+  document.getElementById('right').innerHTML =
+    '<h3>สุ่ม</h3>' + current.map((n,i)=>{
+      const cls = n===fixed[i] ? 'box match' : 'box';
+      return `<div class="${cls}">${n===null?'-':n}</div>`;
+    }).join('');
+  document.getElementById('count').innerText = 'จำนวนครั้งที่สุ่ม: ' + count;
+}
+
+function step(){
+  count++;
+  let allMatch = true;
+  for(let i=0;i<fixed.length;i++){
+    current[i] = Math.floor(Math.random()*150)+1;
+    if(current[i] !== fixed[i]) allMatch = false;
+  }
+  render();
+  if(allMatch){
+    stop();
+    alert('ตรงกันครบทุกช่อง! ใช้ทั้งหมด ' + count + ' ครั้ง');
+  }
+}
+
+function start(){
+  if(timer) return;
+  timer = setInterval(step, 50);
+}
+function stop(){
+  clearInterval(timer);
+  timer = null;
+}
+function reset(){
+  stop();
+  count = 0;
+  current = new Array(fixed.length).fill(null);
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
