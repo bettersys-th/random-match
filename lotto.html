@@ -78,6 +78,46 @@
   .loseMsg{text-align:center;font-size:16px;color:#ff8080;margin-top:10px}
   #confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
   .piece{position:absolute;top:-10px;width:8px;height:14px;opacity:.9;border-radius:2px}
+
+  #overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:16px
+  }
+  #modal{
+    background:linear-gradient(160deg,#2a1350,#1b0e33);
+    border:2px solid #ffd700;border-radius:22px;padding:30px 26px;
+    max-width:380px;width:100%;text-align:center;position:relative;
+    box-shadow:0 0 40px rgba(255,215,0,.5);
+    animation:popIn .35s cubic-bezier(.34,1.56,.64,1)
+  }
+  @keyframes popIn{
+    0%{transform:scale(.6);opacity:0}
+    100%{transform:scale(1);opacity:1}
+  }
+  #closeModal{
+    position:absolute;top:10px;right:14px;background:none;border:none;
+    color:#fff;font-size:20px;cursor:pointer;opacity:.6
+  }
+  #closeModal:hover{opacity:1}
+  .modalTitle{font-size:22px;font-weight:800;margin-bottom:6px}
+  .modalNumber{
+    font-size:30px;font-weight:800;letter-spacing:6px;color:#ffd76b;
+    margin:10px 0
+  }
+  .ageHighlight{
+    font-size:56px;font-weight:800;line-height:1;
+    background:linear-gradient(90deg,#ffd700,#ffea00);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin:14px 0 2px
+  }
+  .ageLabel{font-size:13px;opacity:.75;margin-bottom:14px}
+  .modalStats{
+    text-align:left;font-size:14px;line-height:1.9;
+    background:rgba(255,255,255,.06);border-radius:12px;padding:12px 16px;margin-top:10px
+  }
+  .modalStats .row{display:flex;justify-content:space-between;border-bottom:1px dashed rgba(255,255,255,.15);padding:3px 0}
+  .modalStats .row:last-child{border-bottom:none}
+  .modalStats .val{font-weight:700;color:#ffd76b}
 </style>
 </head>
 <body>
@@ -107,7 +147,12 @@
   <button class="mainBtn" id="goBtn" onclick="simulate()">🎲 เริ่มจำลอง</button>
 </div>
 
-<div id="result"></div>
+<div id="overlay">
+  <div id="modal">
+    <button id="closeModal" onclick="closeModal()">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
 
 <script>
 function addNumber(){
@@ -143,6 +188,14 @@ function launchConfetti(){
   }
 }
 
+function openModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('overlay').style.display = 'flex';
+}
+function closeModal(){
+  document.getElementById('overlay').style.display = 'none';
+}
+
 function simulate(){
   const age = parseInt(document.getElementById('age').value) || 0;
   const inputs = document.querySelectorAll('.userNum');
@@ -152,17 +205,15 @@ function simulate(){
     if(/^\d{6}$/.test(v)) numbers.push(v);
   });
 
-  const resultEl = document.getElementById('result');
   if(numbers.length === 0){
-    resultEl.style.display='block';
-    resultEl.innerHTML = '<span style="color:orange">⚠️ กรุณากรอกเลข 6 หลักอย่างน้อย 1 ใบ</span>';
+    openModal(`<div class="modalTitle" style="color:orange">⚠️ กรอกเลขก่อนนะ</div>
+      <div style="font-size:14px;opacity:.85">กรุณากรอกเลข 6 หลักอย่างน้อย 1 ใบ</div>`);
     return;
   }
 
   const goBtn = document.getElementById('goBtn');
   const drawBox = document.getElementById('drawBox');
   goBtn.disabled = true;
-  resultEl.style.display='none';
   drawBox.classList.add('rolling');
 
   // แอนิเมชันหมุนเลขสั้นๆ ให้ตื่นเต้น ก่อนคำนวณจริง
@@ -173,12 +224,12 @@ function simulate(){
     if(ticks > 18){
       clearInterval(rollTimer);
       drawBox.classList.remove('rolling');
-      runSimulation(age, numbers, drawBox, resultEl, goBtn);
+      runSimulation(age, numbers, drawBox, goBtn);
     }
   }, 60);
 }
 
-function runSimulation(age, numbers, drawBox, resultEl, goBtn){
+function runSimulation(age, numbers, drawBox, goBtn){
   const MAX_DRAWS = 50000000;
   let draws = 0, draw = '', won = false;
 
@@ -195,21 +246,33 @@ function runSimulation(age, numbers, drawBox, resultEl, goBtn){
   const ageAtWin = age + years;
   const totalCost = draws * 80;
 
-  let html = `
-    <div class="row"><span>🎲 จำนวนครั้งที่สุ่ม</span><span class="val">${draws.toLocaleString()} ครั้ง</span></div>
-    <div class="row"><span>🗓️ ระยะเวลา</span><span class="val">${months.toLocaleString(undefined,{maximumFractionDigits:1})} เดือน (${years.toLocaleString(undefined,{maximumFractionDigits:2})} ปี)</span></div>
-    <div class="row"><span>💸 ค่าลอตเตอรี่รวม</span><span class="val">${totalCost.toLocaleString()} บาท</span></div>
-  `;
+  const stats = `
+    <div class="modalStats">
+      <div class="row"><span>🎲 จำนวนครั้งที่สุ่ม</span><span class="val">${draws.toLocaleString()} ครั้ง</span></div>
+      <div class="row"><span>🗓️ ระยะเวลา</span><span class="val">${months.toLocaleString(undefined,{maximumFractionDigits:1})} เดือน (${years.toLocaleString(undefined,{maximumFractionDigits:2})} ปี)</span></div>
+      <div class="row"><span>💸 ค่าลอตเตอรี่รวม</span><span class="val">${totalCost.toLocaleString()} บาท</span></div>
+    </div>`;
 
+  let html;
   if(won){
-    html += `<div class="winMsg">🎉 ถูกรางวัลด้วยเลข ${draw}<br>ตอนอายุประมาณ ${ageAtWin.toFixed(1)} ปี! 🎉</div>`;
-    launchConfetti();
+    html = `
+      <div class="modalTitle">🎉 ถูกรางวัล! 🎉</div>
+      <div class="modalNumber">${draw}</div>
+      <div class="ageLabel">อายุตอนถูกรางวัล</div>
+      <div class="ageHighlight">${ageAtWin.toFixed(1)}</div>
+      <div class="ageLabel">ปี</div>
+      ${stats}
+    `;
   } else {
-    html += `<div class="loseMsg">😅 ไม่ถูกรางวัลภายในขีดจำกัดการจำลอง</div>`;
+    html = `
+      <div class="modalTitle" style="color:#ff8080">😅 ยังไม่ถูกรางวัล</div>
+      <div style="font-size:14px;opacity:.85;margin-bottom:6px">ภายในขีดจำกัดการจำลอง</div>
+      ${stats}
+    `;
   }
 
-  resultEl.innerHTML = html;
-  resultEl.style.display='block';
+  openModal(html);
+  if(won) launchConfetti();
   goBtn.disabled = false;
 }
 </script>
